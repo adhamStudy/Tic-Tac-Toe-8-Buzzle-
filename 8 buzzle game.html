@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>8-Puzzle Game</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      .puzzle-tile {
+        transition: transform 0.2s ease, background-color 0.2s ease;
+      }
+      .puzzle-tile:hover {
+        transform: scale(1.05);
+      }
+    </style>
+  </head>
+  <body
+    class="bg-gray-100 flex flex-col items-center justify-center min-h-screen"
+  >
+    <div class="text-center">
+      <h1 class="text-4xl font-bold text-gray-800 mb-4">8-Puzzle Game</h1>
+      <div
+        id="puzzle-board"
+        class="grid grid-cols-3 gap-2 bg-gray-300 p-2 rounded-lg shadow-lg"
+      >
+        <!-- Puzzle tiles will be dynamically generated here -->
+      </div>
+      <div class="mt-6 space-x-4">
+        <button
+          id="new-game"
+          class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600"
+        >
+          New Game
+        </button>
+        <button
+          id="solve"
+          class="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600"
+        >
+          Solve
+        </button>
+      </div>
+    </div>
+
+    <script>
+      // Game state
+      let currentState = [
+        [1, 2, 3],
+        [4, 5, 6],
+        [7, 8, 0],
+      ];
+      const goalState = [
+        [1, 2, 3],
+        [4, 5, 6],
+        [7, 8, 0],
+      ];
+
+      // DOM elements
+      const puzzleBoard = document.getElementById("puzzle-board");
+      const newGameButton = document.getElementById("new-game");
+      const solveButton = document.getElementById("solve");
+
+      // Initialize the game
+      function initGame() {
+        renderBoard();
+        addEventListeners();
+      }
+
+      // Render the puzzle board
+      function renderBoard() {
+        puzzleBoard.innerHTML = "";
+        for (let i = 0; i < 3; i++) {
+          for (let j = 0; j < 3; j++) {
+            const value = currentState[i][j];
+            const tile = document.createElement("div");
+            tile.className = `puzzle-tile w-24 h-24 flex items-center justify-center text-2xl font-bold rounded-lg ${
+              value === 0 ? "bg-gray-400" : "bg-white hover:bg-gray-200"
+            }`;
+            tile.textContent = value === 0 ? "" : value;
+            tile.dataset.row = i;
+            tile.dataset.col = j;
+            puzzleBoard.appendChild(tile);
+          }
+        }
+      }
+
+      // Add event listeners
+      function addEventListeners() {
+        puzzleBoard.addEventListener("click", handleTileClick);
+        newGameButton.addEventListener("click", shuffleBoard);
+        solveButton.addEventListener("click", solvePuzzle);
+      }
+
+      // Handle tile click
+      function handleTileClick(event) {
+        const tile = event.target;
+        if (tile.textContent === "") return;
+
+        const row = parseInt(tile.dataset.row);
+        const col = parseInt(tile.dataset.col);
+
+        if (isValidMove(row, col)) {
+          const [emptyRow, emptyCol] = getEmptyPosition();
+          currentState[emptyRow][emptyCol] = currentState[row][col];
+          currentState[row][col] = 0;
+          renderBoard();
+
+          if (isPuzzleSolved()) {
+            alert("Congratulations! You solved the puzzle!");
+          }
+        }
+      }
+
+      // Check if the move is valid
+      function isValidMove(row, col) {
+        const [emptyRow, emptyCol] = getEmptyPosition();
+        return (
+          (Math.abs(row - emptyRow) === 1 && col === emptyCol) ||
+          (Math.abs(col - emptyCol) === 1 && row === emptyRow)
+        );
+      }
+
+      // Get the position of the empty tile
+      function getEmptyPosition() {
+        for (let i = 0; i < 3; i++) {
+          for (let j = 0; j < 3; j++) {
+            if (currentState[i][j] === 0) {
+              return [i, j];
+            }
+          }
+        }
+        return null;
+      }
+
+      // Shuffle the board
+      function shuffleBoard() {
+        let numbers = [1, 2, 3, 4, 5, 6, 7, 8, 0];
+        numbers = numbers.sort(() => Math.random() - 0.5);
+
+        for (let i = 0; i < 3; i++) {
+          for (let j = 0; j < 3; j++) {
+            currentState[i][j] = numbers[i * 3 + j];
+          }
+        }
+        renderBoard();
+      }
+
+      // Check if the puzzle is solved
+      function isPuzzleSolved() {
+        return JSON.stringify(currentState) === JSON.stringify(goalState);
+      }
+
+      // Solve the puzzle using BFS
+      function solvePuzzle() {
+        const queue = [];
+        const visited = new Set();
+
+        queue.push({ state: JSON.stringify(currentState), path: [] });
+        visited.add(JSON.stringify(currentState));
+
+        while (queue.length > 0) {
+          const { state, path } = queue.shift();
+          const board = JSON.parse(state);
+
+          if (JSON.stringify(board) === JSON.stringify(goalState)) {
+            animateSolution(path);
+            return;
+          }
+
+          const [emptyRow, emptyCol] = getEmptyPositionFromBoard(board);
+          const moves = [
+            { row: emptyRow - 1, col: emptyCol },
+            { row: emptyRow + 1, col: emptyCol },
+            { row: emptyRow, col: emptyCol - 1 },
+            { row: emptyRow, col: emptyCol + 1 },
+          ];
+
+          for (const { row, col } of moves) {
+            if (row >= 0 && row < 3 && col >= 0 && col < 3) {
+              const newBoard = board.map((row) => [...row]);
+              newBoard[emptyRow][emptyCol] = newBoard[row][col];
+              newBoard[row][col] = 0;
+
+              const newState = JSON.stringify(newBoard);
+              if (!visited.has(newState)) {
+                visited.add(newState);
+                queue.push({ state: newState, path: [...path, { row, col }] });
+              }
+            }
+          }
+        }
+
+        alert("No solution found!");
+      }
+
+      // Get the empty tile position from a given board state
+      function getEmptyPositionFromBoard(board) {
+        for (let i = 0; i < 3; i++) {
+          for (let j = 0; j < 3; j++) {
+            if (board[i][j] === 0) {
+              return [i, j];
+            }
+          }
+        }
+        return null;
+      }
+
+      // Animate the solution step by step
+      function animateSolution(path) {
+        let i = 0;
+        function step() {
+          if (i < path.length) {
+            const { row, col } = path[i];
+            const [emptyRow, emptyCol] = getEmptyPosition();
+            currentState[emptyRow][emptyCol] = currentState[row][col];
+            currentState[row][col] = 0;
+            renderBoard();
+            i++;
+            setTimeout(step, 500);
+          } else {
+            alert("Puzzle Solved!");
+          }
+        }
+        step();
+      }
+
+      // Initialize the game on page load
+      initGame();
+    </script>
+  </body>
+</html>

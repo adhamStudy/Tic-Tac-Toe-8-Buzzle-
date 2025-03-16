@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Tic Tac Toe</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      .tile {
+        transition: transform 0.2s ease, background-color 0.2s ease;
+      }
+      .tile:hover {
+        transform: scale(1.05);
+      }
+      .winner {
+        background-color: #4caf50 !important;
+        color: white;
+      }
+    </style>
+  </head>
+  <body
+    class="bg-gray-100 flex flex-col items-center justify-center min-h-screen"
+  >
+    <div class="text-center">
+      <h1 class="text-4xl font-bold text-gray-800 mb-4">Tic Tac Toe</h1>
+      <div
+        id="game-board"
+        class="grid grid-cols-3 gap-2 bg-gray-300 p-2 rounded-lg shadow-lg"
+      >
+        <!-- Game tiles will be dynamically generated here -->
+      </div>
+      <div class="mt-6">
+        <button
+          id="new-game"
+          class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600"
+        >
+          New Game
+        </button>
+      </div>
+      <div id="status" class="mt-4 text-xl font-semibold text-gray-700">
+        Player X's turn
+      </div>
+    </div>
+
+    <script>
+      let currentPlayer = "X";
+      let board = [
+        ["", "", ""],
+        ["", "", ""],
+        ["", "", ""],
+      ];
+      let gameOver = false;
+
+      const gameBoard = document.getElementById("game-board");
+      const newGameButton = document.getElementById("new-game");
+      const statusLabel = document.getElementById("status");
+
+      function initGame() {
+        gameOver = false;
+        renderBoard();
+        addEventListeners();
+      }
+
+      function renderBoard() {
+        gameBoard.innerHTML = "";
+        for (let i = 0; i < 3; i++) {
+          for (let j = 0; j < 3; j++) {
+            const tile = document.createElement("div");
+            tile.className = `tile w-24 h-24 flex items-center justify-center text-4xl font-bold rounded-lg ${
+              board[i][j] === "" ? "bg-white hover:bg-gray-200" : "bg-gray-100"
+            }`;
+            tile.textContent = board[i][j];
+            tile.dataset.row = i;
+            tile.dataset.col = j;
+            gameBoard.appendChild(tile);
+          }
+        }
+      }
+
+      function addEventListeners() {
+        gameBoard.addEventListener("click", handleTileClick);
+        newGameButton.addEventListener("click", resetGame);
+      }
+
+      function handleTileClick(event) {
+        if (gameOver) return;
+
+        const tile = event.target;
+        const row = parseInt(tile.dataset.row);
+        const col = parseInt(tile.dataset.col);
+
+        if (board[row][col] === "") {
+          board[row][col] = currentPlayer;
+          renderBoard();
+
+          const winningTiles = checkWinner(currentPlayer);
+          if (winningTiles) {
+            highlightWinningTiles(winningTiles);
+            statusLabel.textContent = `Player ${currentPlayer} wins!`;
+            gameOver = true;
+            return;
+          }
+
+          if (isBoardFull()) {
+            statusLabel.textContent = "It's a tie!";
+            gameOver = true;
+            return;
+          }
+
+          currentPlayer = currentPlayer === "X" ? "O" : "X";
+          statusLabel.textContent = `Player ${currentPlayer}'s turn`;
+        }
+      }
+
+      function checkWinner(player) {
+        for (let i = 0; i < 3; i++) {
+          if (
+            board[i][0] === player &&
+            board[i][1] === player &&
+            board[i][2] === player
+          ) {
+            return [
+              [i, 0],
+              [i, 1],
+              [i, 2],
+            ];
+          }
+        }
+
+        for (let j = 0; j < 3; j++) {
+          if (
+            board[0][j] === player &&
+            board[1][j] === player &&
+            board[2][j] === player
+          ) {
+            return [
+              [0, j],
+              [1, j],
+              [2, j],
+            ];
+          }
+        }
+
+        if (
+          board[0][0] === player &&
+          board[1][1] === player &&
+          board[2][2] === player
+        ) {
+          return [
+            [0, 0],
+            [1, 1],
+            [2, 2],
+          ];
+        }
+
+        if (
+          board[0][2] === player &&
+          board[1][1] === player &&
+          board[2][0] === player
+        ) {
+          return [
+            [0, 2],
+            [1, 1],
+            [2, 0],
+          ];
+        }
+
+        return null;
+      }
+
+      function highlightWinningTiles(tiles) {
+        tiles.forEach(([row, col]) => {
+          const tile = document.querySelector(
+            `[data-row='${row}'][data-col='${col}']`
+          );
+          tile.classList.add("winner");
+        });
+      }
+
+      function isBoardFull() {
+        return board.every((row) => row.every((cell) => cell !== ""));
+      }
+
+      function resetGame() {
+        currentPlayer = "X";
+        board = [
+          ["", "", ""],
+          ["", "", ""],
+          ["", "", ""],
+        ];
+        gameOver = false;
+        renderBoard();
+        statusLabel.textContent = `Player ${currentPlayer}'s turn`;
+      }
+
+      initGame();
+    </script>
+  </body>
+</html>
